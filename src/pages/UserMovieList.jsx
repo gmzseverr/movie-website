@@ -4,7 +4,6 @@ const UserMoviesList = () => {
   const [userMovies, setUserMovies] = useState([]);
 
   useEffect(() => {
-    // LocalStorage'dan filmleri al
     const storedMovies = JSON.parse(localStorage.getItem("userMovies")) || [];
     setUserMovies(storedMovies);
   }, []);

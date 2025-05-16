@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import axios from "axios";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCirclePlay } from "@fortawesome/free-solid-svg-icons";
+import api from "../api/api";
 
 function MovieDetail() {
   const { id } = useParams();
@@ -23,8 +24,8 @@ function MovieDetail() {
 
   useEffect(() => {
     console.log(import.meta.env.VITE_REACT_APP_API);
-    axios
-      .get(import.meta.env.VITE_REACT_APP_API + `/movies/${id}`)
+    api
+      .get(`/movies/${id}`)
       .then((response) => {
         setMovie(response.data);
         setLoading(false);

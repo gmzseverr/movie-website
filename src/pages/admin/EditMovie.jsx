@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../api/api";
 
 const EditMovie = () => {
   const { id } = useParams();
@@ -22,8 +22,8 @@ const EditMovie = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:8080/movies/${id}`)
+    api
+      .get(`/movies/${id}`)
       .then((response) => {
         const movieData = response.data;
 
@@ -82,8 +82,8 @@ const EditMovie = () => {
         : movie.genreNames.split(",").map((name) => name.trim()),
     };
 
-    axios
-      .put(`http://localhost:8080/movies/admin/update/${id}`, requestData)
+    api
+      .put(`/movies/admin/update/${id}`, requestData)
       .then(() => {
         navigate("/admin");
       })

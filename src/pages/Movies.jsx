@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+
 import MovieCard from "../components/MovieCard";
 import { Spinner } from "@heroui/react";
+import api from "../api/api";
 
 export default function Movies({ isAuthenticated }) {
   const { id } = useParams();
@@ -17,13 +18,11 @@ export default function Movies({ isAuthenticated }) {
         setLoading(true);
 
         if (id) {
-          const response = await axios.get(
-            `http://localhost:8080/genres/${id}/movies`
-          );
+          const response = await api.get(`/genres/${id}/movies`);
           setMovies(response.data.movies);
           setGenreName(response.data.name);
         } else {
-          const response = await axios.get("http://localhost:8080/movies");
+          const response = await api.get("/movies");
           setMovies(response.data);
           setGenreName("All");
         }

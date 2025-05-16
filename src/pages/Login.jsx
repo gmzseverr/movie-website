@@ -1,7 +1,7 @@
-import axios from "axios";
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import api from "../api/api";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -21,14 +21,14 @@ function Login() {
     setMessage("");
 
     try {
-      const response = await axios.post("http://localhost:8080/auth/login", {
+      const response = await api.post("/auth/login", {
         email,
         password,
       });
 
       const userData = {
         id: response.data.id,
-        name: response.data.fullName, // fullName doğru geliyor mu?
+        name: response.data.fullName,
         email: response.data.email,
         roles: response.data.roles,
       };

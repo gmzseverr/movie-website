@@ -1,6 +1,7 @@
 import { Button } from "@heroui/react";
-import axios from "axios";
+
 import React, { useState } from "react";
+import api from "../api/api";
 
 function Register() {
   const [fullName, setFullName] = useState("");
@@ -13,7 +14,7 @@ function Register() {
 
     // API'ye kullanıcı verilerini gönder
     try {
-      const response = await axios.post("http://localhost:8080/auth/register", {
+      const response = await api.post("/auth/register", {
         fullName,
         email,
         password,

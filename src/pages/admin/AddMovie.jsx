@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import axios from "axios";
+
 import { useNavigate } from "react-router-dom";
+import api from "../../api/api";
 
 function AddMovie() {
   const [movieData, setMovieData] = useState({
@@ -47,15 +48,11 @@ function AddMovie() {
     };
 
     try {
-      const response = await axios.post(
-        "http://localhost:8080/movies/admin/add", // Backend API endpoint
-        movieRequest,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await api.post("/movies/admin/add", movieRequest, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
       if (response.status === 201) {
         alert("Movie added successfully!");
         navigate("/admin"); // Redirect to admin panel

@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faPlay, faPlus } from "@fortawesome/free-solid-svg-icons";
 import MovieCarousel from "./MovieCarousel";
 import { Link } from "react-router-dom";
+import api from "../api/api";
 
 function Banner() {
   const [movies, setMovies] = useState([]);
   const [activeMovie, setActiveMovie] = useState(null);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/movies")
+    api
+      .get("/movies")
       .then((res) => {
         const filteredMovies = res.data.filter(
           (movie) => movie.logoUrl && movie.logoUrl.trim() !== ""

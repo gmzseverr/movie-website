@@ -5,8 +5,9 @@ import {
   faPenToSquare,
   faEye,
 } from "@fortawesome/free-solid-svg-icons";
-import axios from "axios";
+
 import { useNavigate } from "react-router-dom";
+import api from "../../api/api";
 
 const AdminMovieList = () => {
   const [movies, setMovies] = useState([]);
@@ -15,8 +16,8 @@ const AdminMovieList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/movies")
+    api
+      .get("/movies")
       .then((response) => {
         const sortedMovies = response.data.sort((a, b) => a.id - b.id);
         setMovies(sortedMovies);
@@ -33,8 +34,8 @@ const AdminMovieList = () => {
   };
 
   const confirmDelete = () => {
-    axios
-      .delete(`http://localhost:8080/admin/movies/remove/${selectedMovie.id}`)
+    api
+      .delete(`/admin/movies/remove/${selectedMovie.id}`)
       .then(() => {
         setMovies((prev) => prev.filter((m) => m.id !== selectedMovie.id));
         setShowModal(false);

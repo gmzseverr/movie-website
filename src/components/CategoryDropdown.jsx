@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+
+import api from "../api/api";
 
 const CategoryDropdown = () => {
   const [genres, setGenres] = useState([]);
@@ -8,8 +9,8 @@ const CategoryDropdown = () => {
 
   useEffect(() => {
     // Fetch categories from API
-    axios
-      .get("http://localhost:8080/genres") // API URL
+    api
+      .get("/genres") // API URL
       .then((response) => {
         setGenres(response.data); //
       })
