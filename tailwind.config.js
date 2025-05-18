@@ -1,15 +1,19 @@
+const { heroui } = require("@heroui/theme");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}", // React dosyalarını tarar
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./node_modules/@heroui/theme/dist/components/(alert|button|dropdown|input|menu|modal|navbar|scroll-shadow|table|ripple|spinner|divider|popover|form|checkbox|spacer).js"
   ],
   theme: {
     extend: {
       colors: {
         primary: "#5A0001",
         secondary: "#F13030",
+        graybg: "#2A2A2A",
       },
     },
   },
-  plugins: [],
+  plugins: [heroui()],
 };

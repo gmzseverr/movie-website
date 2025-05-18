@@ -17,7 +17,7 @@ const MovieCard = ({ movie, isAuthenticated }) => {
         <img
           src={movie.posterUrl || "/default-movie-poster.jpg"}
           alt={`${movie.title} poster`}
-          className="w-full h-96 object-cover hover:opacity-90 transition-opacity"
+          className="w-full h-max rounded-lg object-cover hover:opacity-90 transition-opacity"
           onError={(e) => {
             e.target.src = "/default-movie-poster.jpg";
           }}

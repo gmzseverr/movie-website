@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/api";
 
+import { Button } from "@heroui/button";
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,12 +15,22 @@ function Login() {
 
   const { login } = useAuth();
 
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const from = location.state?.from?.pathname || "/";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage("");
+    if (!validateEmail(email)) {
+      setMessage("Geçerli bir email adresi giriniz.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await api.post("/auth/login", {
@@ -33,6 +45,11 @@ function Login() {
         roles: response.data.roles,
       };
 
+      const validateEmail = (email) => {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+      };
+
       const isAdmin = userData.roles.includes("ADMIN");
       console.log("Is Admin:", isAdmin);
 
@@ -41,8 +58,8 @@ function Login() {
       setMessage("Login successful! Redirecting...");
 
       setTimeout(() => {
-        navigate(from); // 'from' ile gelen sayfaya yönlendiriyoruz
-      }, 2000);
+        navigate("/");
+      }, 1000);
     } catch (error) {
       setMessage("Login failed. Please check your credentials.");
       console.error(error);
@@ -59,7 +76,7 @@ function Login() {
           <p className="text-gray-400">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
           <div>
             <label
               htmlFor="email"
@@ -107,10 +124,10 @@ function Login() {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-3 px-4 rounded-lg font-medium text-white ${
+            className={`w-full py-3 px-4 cursor-pointer rounded-lg font-medium text-white ${
               isLoading
                 ? "bg-red-700 cursor-not-allowed"
                 : "bg-red-600 hover:bg-red-700"
@@ -143,7 +160,7 @@ function Login() {
             ) : (
               "Sign in"
             )}
-          </button>
+          </Button>
         </form>
 
         {message && (
