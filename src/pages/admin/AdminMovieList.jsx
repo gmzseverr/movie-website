@@ -35,7 +35,7 @@ const AdminMovieList = () => {
 
   const confirmDelete = () => {
     api
-      .delete(`/admin/movies/remove/${selectedMovie.id}`)
+      .delete(`movies/admin/remove/${selectedMovie.id}`)
       .then(() => {
         setMovies((prev) => prev.filter((m) => m.id !== selectedMovie.id));
         setShowModal(false);
