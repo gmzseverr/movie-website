@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/api";
+import { Spinner } from "@heroui/react"; // Assuming you want to use the same spinner
 
 const EditMovie = () => {
   const { id } = useParams();
@@ -19,42 +20,52 @@ const EditMovie = () => {
     genreNames: [],
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(""); // Added error state for feedback
   const navigate = useNavigate();
 
   useEffect(() => {
-    api
-      .get(`/movies/${id}`)
-      .then((response) => {
+    const fetchMovie = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const response = await api.get(`/movies/${id}`);
         const movieData = response.data;
 
+        // Ensure directorName, actorNames, and genreNames are properly set
         const directorName = movieData.director ? movieData.director.name : "";
-        // Aktör isimlerini sadece isimler olarak al
-        const actorNames = movieData.actors.map((actor) => actor.name);
-        // Türleri de sadece isimler olarak al
-        const genreNames = movieData.genres.map((genre) => genre.name);
+        const actorNames = movieData.actors
+          ? movieData.actors.map((actor) => actor.name)
+          : [];
+        const genreNames = movieData.genres
+          ? movieData.genres.map((genre) => genre.name)
+          : [];
 
         setMovie({
           ...movieData,
-          actorNames, // actorNames'i dizilere dönüştür
-          genreNames, // genreNames'i dizilere dönüştür
+          actorNames,
+          genreNames,
           directorName,
         });
+      } catch (err) {
+        console.error("Error fetching movie:", err);
+        setError("Failed to load movie details. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching movie:", error);
-        setLoading(false);
-      });
+    fetchMovie();
   }, [id]);
 
-  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // If the input is for actorNames or genreNames, handle them as arrays
     if (name === "actorNames" || name === "genreNames") {
-      const values = value.split(",").map((item) => item.trim());
+      // Split by comma, trim spaces, and filter out empty strings
+      const values = value
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item !== "");
       setMovie({
         ...movie,
         [name]: values,
@@ -67,60 +78,118 @@ const EditMovie = () => {
     }
   };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Indicate submission in progress
+    setError("");
 
-    // Prepare the data for backend
+    // Ensure array fields are handled correctly before sending
     const requestData = {
       ...movie,
-      actorNames: Array.isArray(movie.actorNames)
-        ? movie.actorNames
-        : movie.actorNames.split(",").map((name) => name.trim()),
-      genreNames: Array.isArray(movie.genreNames)
-        ? movie.genreNames
-        : movie.genreNames.split(",").map((name) => name.trim()),
+      actorNames: movie.actorNames, // These are already arrays from handleChange
+      genreNames: movie.genreNames, // These are already arrays from handleChange
     };
 
-    api
-      .put(`/movies/admin/update/${id}`, requestData)
-      .then(() => {
-        navigate("/admin");
-      })
-      .catch((error) => {
-        console.error(
-          "Error updating movie:",
-          error.response?.data || error.message
-        );
-      });
+    try {
+      await api.put(`/movies/admin/update/${id}`, requestData);
+      navigate("/admin"); // Navigate back to admin panel on success
+    } catch (err) {
+      console.error("Error updating movie:", err.response?.data || err.message);
+      setError("Failed to update movie. Please check your inputs."); // More user-friendly error
+    } finally {
+      setLoading(false); // Reset loading state
+    }
   };
 
+  // --- Loading, Error, and Not Found States ---
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Spinner
+          classNames={{ label: "text-red-400 mt-4 text-xl" }}
+          label="Loading movie details..."
+          variant="wave"
+        />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 text-red-500 text-lg font-semibold px-4 text-center">
+        <p>{error}</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-6 px-6 py-2 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold transition-colors duration-200 shadow-md"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
+  // If movie data is empty after loading and no error, means movie not found (or initial state)
+  if (!movie.title && !loading && !error) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-lg font-medium px-4 text-center">
+        <p>Movie not found.</p>
+        <button
+          onClick={() => navigate("/admin")}
+          className="mt-6 px-6 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold transition-colors duration-200 shadow-md"
+        >
+          Back to Admin Panel
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="relative w-full min-h-screen bg-[#121212] text-white pt-20 px-14 sm:px-8 md:px-32 md:p-32">
-      <h1 className="text-2xl font-bold mb-4 text-red-800">Edit Movie</h1>
-      <button
-        type="button"
-        onClick={() => navigate(-1)} // Go back button
-        className="mt-4 ml-4 bg-gray-700 text-white p-2 rounded-md"
-      >
-        Back
-      </button>
-      <div className="flex">
-        <div className="w-1/3 mr-6">
+    <div className="relative w-full min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 pt-20 px-4 sm:px-8 md:px-16 lg:px-24 pb-12">
+      {/* Page Title and Back Button */}
+      <div className="flex flex-col sm:flex-row sm:justify-between items-center py-8 lg:py-12 mb-6">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-red-400 mb-4 sm:mb-0">
+          Edit Movie
+        </h1>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="cursor-pointer px-6 py-2 bg-gray-600 text-white rounded-lg font-semibold
+                     hover:bg-gray-700 transition-colors duration-200 shadow-md"
+        >
+          Go Back
+        </button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-xl">
+        {/* Movie Poster Section (Left side on larger screens) */}
+        <div className="lg:w-1/3 flex-shrink-0 flex justify-center items-start lg:block">
           <img
-            src={movie.posterUrl || "https://via.placeholder.com/300x450"}
-            alt="Movie Poster"
-            className="rounded-lg shadow-md"
+            src={
+              movie.posterUrl ||
+              "https://via.placeholder.com/300x450?text=No+Poster"
+            }
+            alt={`${movie.title || "Movie"} Poster`}
+            className="rounded-lg shadow-md max-w-full h-auto w-64 md:w-80 lg:w-full object-cover"
+            onError={(e) => {
+              e.target.src =
+                "https://via.placeholder.com/300x450?text=No+Poster";
+            }}
           />
         </div>
-        <form onSubmit={handleSubmit} className="w-2/3 text-white">
+
+        {/* Edit Form Section (Right side on larger screens) */}
+        <form
+          onSubmit={handleSubmit}
+          className="lg:w-2/3 flex-grow grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4"
+        >
           {/* Title */}
-          <div className="mb-4">
-            <label htmlFor="title" className="block text-sm font-medium">
+          <div className="md:col-span-2">
+            {" "}
+            {/* Takes full width on medium screens */}
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Title
             </label>
             <input
@@ -129,14 +198,17 @@ const EditMovie = () => {
               name="title"
               value={movie.title}
               onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
               required
             />
           </div>
 
           {/* Year */}
-          <div className="mb-4">
-            <label htmlFor="year" className="block text-sm font-medium">
+          <div>
+            <label
+              htmlFor="year"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Year
             </label>
             <input
@@ -145,30 +217,17 @@ const EditMovie = () => {
               name="year"
               value={movie.year}
               onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          {/* Description */}
-          <div className="mb-4">
-            <label htmlFor="description" className="block text-sm font-medium">
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={movie.description}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-              rows="4"
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
               required
             />
           </div>
 
           {/* Duration */}
-          <div className="mb-4">
-            <label htmlFor="duration" className="block text-sm font-medium">
+          <div>
+            <label
+              htmlFor="duration"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Duration (Minutes)
             </label>
             <input
@@ -177,14 +236,17 @@ const EditMovie = () => {
               name="duration"
               value={movie.duration}
               onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
               required
             />
           </div>
 
           {/* IMDb Rating */}
-          <div className="mb-4">
-            <label htmlFor="imdbRating" className="block text-sm font-medium">
+          <div>
+            <label
+              htmlFor="imdbRating"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               IMDb Rating
             </label>
             <input
@@ -193,70 +255,18 @@ const EditMovie = () => {
               name="imdbRating"
               value={movie.imdbRating}
               onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
               step="0.1"
               required
             />
           </div>
 
-          {/* URLs */}
-          <div className="mb-4">
-            <label htmlFor="posterUrl" className="block text-sm font-medium">
-              Poster URL
-            </label>
-            <input
-              type="text"
-              id="posterUrl"
-              name="posterUrl"
-              value={movie.posterUrl}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="wallpaperUrl" className="block text-sm font-medium">
-              Background URL
-            </label>
-            <input
-              type="text"
-              id="wallpaperUrl"
-              name="wallpaperUrl"
-              value={movie.wallpaperUrl}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="logoUrl" className="block text-sm font-medium">
-              Logo URL
-            </label>
-            <input
-              type="text"
-              id="logoUrl"
-              name="logoUrl"
-              value={movie.logoUrl}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label htmlFor="trailerUrl" className="block text-sm font-medium">
-              Trailer URL
-            </label>
-            <input
-              type="text"
-              id="trailerUrl"
-              name="trailerUrl"
-              value={movie.trailerUrl}
-              onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
-            />
-          </div>
-
           {/* Director Name */}
-          <div className="mb-4">
-            <label htmlFor="directorName" className="block text-sm font-medium">
+          <div>
+            <label
+              htmlFor="directorName"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Director Name
             </label>
             <input
@@ -265,12 +275,18 @@ const EditMovie = () => {
               name="directorName"
               value={movie.directorName}
               onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
             />
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="actorNames" className="block text-sm font-medium">
+          {/* Actor Names */}
+          <div className="md:col-span-2">
+            {" "}
+            {/* Takes full width on medium screens */}
+            <label
+              htmlFor="actorNames"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Actor Names (comma separated)
             </label>
             <input
@@ -283,12 +299,18 @@ const EditMovie = () => {
                   : ""
               }
               onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
             />
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="genreNames" className="block text-sm font-medium">
+          {/* Genre Names */}
+          <div className="md:col-span-2">
+            {" "}
+            {/* Takes full width on medium screens */}
+            <label
+              htmlFor="genreNames"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Genre Names (comma separated)
             </label>
             <input
@@ -301,17 +323,114 @@ const EditMovie = () => {
                   : ""
               }
               onChange={handleChange}
-              className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
             />
           </div>
 
+          {/* Description */}
+          <div className="md:col-span-2">
+            {" "}
+            {/* Takes full width on medium screens */}
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={movie.description}
+              onChange={handleChange}
+              className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
+              rows="4"
+              required
+            />
+          </div>
+
+          {/* URL Fields (Full width) */}
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+              <label
+                htmlFor="posterUrl"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Poster URL
+              </label>
+              <input
+                type="text"
+                id="posterUrl"
+                name="posterUrl"
+                value={movie.posterUrl}
+                onChange={handleChange}
+                className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="wallpaperUrl"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Background URL
+              </label>
+              <input
+                type="text"
+                id="wallpaperUrl"
+                name="wallpaperUrl"
+                value={movie.wallpaperUrl}
+                onChange={handleChange}
+                className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="logoUrl"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Logo URL
+              </label>
+              <input
+                type="text"
+                id="logoUrl"
+                name="logoUrl"
+                value={movie.logoUrl}
+                onChange={handleChange}
+                className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="trailerUrl"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Trailer URL
+              </label>
+              <input
+                type="text"
+                id="trailerUrl"
+                name="trailerUrl"
+                value={movie.trailerUrl}
+                onChange={handleChange}
+                className="mt-1 p-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-red-500 focus:border-red-500 shadow-sm outline-none"
+              />
+            </div>
+          </div>
+
           {/* Submit Button */}
-          <button
-            type="submit"
-            className="mt-4 bg-red-800 text-white p-2 rounded-md"
-          >
-            Update Movie
-          </button>
+          <div className="md:col-span-2 flex justify-end mt-6">
+            <button
+              type="submit"
+              disabled={loading} // Disable during submission
+              className={`cursor-pointer px-8 py-3 rounded-lg font-semibold text-xl transition-colors duration-200 shadow-md
+                         ${
+                           loading
+                             ? "bg-gray-400 cursor-not-allowed"
+                             : "bg-red-400 hover:bg-red-500 text-white"
+                         }`}
+            >
+              {loading ? "Updating..." : "Update Movie"}
+            </button>
+          </div>
         </form>
       </div>
     </div>
